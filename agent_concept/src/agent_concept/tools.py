@@ -21,24 +21,40 @@ set_default_openai_client(external_client)
 global_model="gemini-2.0-flash"
 
 @function_tool()
-def get_weather(city:str, unit: str = "C"):
-   """
-   this function get weather 
-   """
-   return f"the weather in {city} is 22 {unit}"
+def get_temperature(city:str, unit: str = "C"):
+  """
+  this function get temperature of the city
+  """
+  print("get_temperature function is called")
+  return f"the weather in {city} is 22 {unit}"
 
+@function_tool()
+def get_name(key:str):
+   """
+   this function get name of the person
+   """
+   print("get_name function is called")
+   data={
+      "1":"owais",
+      "2":"asif",
+      "3":"hanif",
+      "4":"zahid",
+      "5":"mubeen"
+   }
+   return data.get(key)
 
 
 agent=Agent(
   name="Agent_level",
   instructions="you are a help full assistant",
    model=global_model,
-   tools=[get_weather]
+   tools=[get_temperature , get_name]
+   
   )
 async def main():
     result=await Runner.run(
     starting_agent=agent,
-    input="what is the weather in karachi",
+    input="what is the temperature in city of Karachi in celsius and what is the name of the person with key 1",
     )
 
     print(result.final_output)

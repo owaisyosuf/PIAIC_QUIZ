@@ -1,4 +1,4 @@
-from agents import Agent,Runner,AsyncOpenAI,set_tracing_disabled, set_default_openai_api,set_default_openai_client,TResponseInputItem,RunContextWrapper,GuardrailFunctionOutput,InputGuardrailTripwireTriggered, input_guardrail
+from agents import Agent,Runner,AsyncOpenAI,set_tracing_disabled, set_default_openai_api,set_default_openai_client,input_guardrail,RunContextWrapper,TResponseInputItem,GuardrailFunctionOutput,InputGuardrailTripwireTriggered
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import os
@@ -27,32 +27,39 @@ class MathHomeworkOutput(BaseModel):
    reasoning: str
    answer: str
 
-@input_guardrail
-async def math_guardrail(
-    ctx: RunContextWrapper[None], agent: Agent, input: str | list[TResponseInputItem]
-) -> GuardrailFunctionOutput:
-    result = await Runner.run(guardrail_agent, input, context=ctx.context, run_config = config)
 
-    return GuardrailFunctionOutput(
-        output_info=result.final_output,
-        # tripwire_triggered=False #result.final_output.is_math_homework,
-        tripwire_triggered=result.final_output.is_math_homework,
-    )
-agent=Agent(
-  name="Agent_level",
+guardrial_agent=Agent(
+  name="Math_Teacher",
   instructions="you are a math teacher",
    model=global_model,
    output_type=MathHomeworkOutput
    )
-async def main():
-    result=await Runner.run(
-    starting_agent=agent,
-    input="who is the founder of pakistan "
+@input_guardrail
+async def math_guardrial(
+   ctx:RunContextWrapper[None],agent:Agent,input: str | list[TResponseInputItem]
+)-> GuardrailFunctionOutput:  
+      result = await Runner.run(guardrial_agent, input, context=ctx.context)
+     
+      return GuardrailFunctionOutput(
+        output_info=result.final_output, 
+        tripwire_triggered=result.final_output.is_math,
     )
 
-    # print(f"question is realated math: {result.final_output.is_math}")
-    # print(f"reasoning is : {result.final_output.reasoning}")
-    # print(f"answer is {result.final_output.answer}")
+agent=Agent(
+   name="customer_support_agent",
+   instructions="You are a customer support agent. You help customers with their questions.",
+   model=global_model,
+   input_guardrails=[math_guardrial]
+)
+
+async def main():
+    # This should trip the guardrail
+    try:
+        await Runner.run(agent, "who is the founder of pakistan")
+        print("Guardrail didn't trip - this is unexpected")
+
+    except InputGuardrailTripwireTriggered:
+        print("Math homework guardrail tripped")
 
 
 asyncio.run(main())

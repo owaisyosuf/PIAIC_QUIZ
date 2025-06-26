@@ -1,5 +1,5 @@
-from agents import Agent,Runner,AsyncOpenAI,set_tracing_disabled, set_default_openai_api,set_default_openai_client
-from dotenv import load_dotenv
+from agents import Agent,Runner,AsyncOpenAI,set_tracing_disabled, set_default_openai_api,set_default_openai_client, function_tool
+from dotenv import load_dotenv 
 import os
 load_dotenv()
 set_tracing_disabled(True)
@@ -19,15 +19,29 @@ external_client=AsyncOpenAI(
 set_default_openai_client(external_client)
 global_model="gemini-2.0-flash"
 
+@function_tool
+def get_weather(city:str, unit:str ="c"):
+  """this function get weather"""
+  print("weather function ")
+  return f"the weather in {city} is 12 {unit}"
+
+@function_tool
+def get_age(name:str):
+  """this function get age"""
+  print("age function ")
+  return f"the age of {name} is 30"  
+
 agent=Agent(
   name="Agent_level",
   instructions="you are a help full assistant",
-   model=global_model
+  model=global_model,
+  tools=[get_weather, get_age],
+  tool_use_behavior=none
   )
 
 result=Runner.run_sync(
   starting_agent=agent,
-  input="who is the founder of pakistan",
+  input="what is the weather in karachi in celcius and what is the age of owais",
 )
 
 print(result.final_output)

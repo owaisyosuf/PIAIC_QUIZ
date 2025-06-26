@@ -1,4 +1,4 @@
-from agents import Agent,Runner,AsyncOpenAI,set_tracing_disabled, set_default_openai_api,set_default_openai_client, output_guardrail, input_guardrail , GuardrailFunctionOutput, RunContextWrapper, InputGuardrailTripwireTriggered, TResponseInputItem, OutputGuardrailTripwireTriggered
+from agents import Agent,Runner,AsyncOpenAI,set_tracing_disabled, set_default_openai_api,set_default_openai_client, output_guardrail, input_guardrail , GuardrailFunctionOutput, RunContextWrapper, InputGuardrailTripwireTriggered, TResponseInputItem
 from pydantic import BaseModel
 from dotenv import load_dotenv 
 import os
@@ -53,15 +53,39 @@ async def math_input_guardrail(
 
 @output_guardrail
 async def math_output_guardrail( 
-    ctx: RunContextWrapper[None], agent: Agent, output:MessageOutput
+    ctx: RunContextWrapper[None], agent: Agent, input: str | list[TResponseInputItem]
 ) -> GuardrailFunctionOutput:
-    result = await Runner.run(output_guardrail_agent, output.response, context=ctx.context)
+    result = await Runner.run(input_guardrail_agent, input, context=ctx.context)
 
     return GuardrailFunctionOutput(
         output_info=result.final_output, 
         tripwire_triggered=not result.final_output.is_math,
     )
 
+# math_tutor_agent = Agent(
+#     name="Math Tutor",
+#     handoff_description="Specialist agent for math questions",
+#     instructions="You provide help with math problems. in short lines",
+#     model=global_model,
+#     # input_guardrails=[math_guardrail],
+
+# )
+
+# history_tutor_agent = Agent(
+#     name="History Tutor",
+#     handoff_description="Specialist agent for historical questions",
+#     instructions="You provide assistance with historical queries. give answer in short .",
+#     model=global_model
+# )
+   
+# triage_agent = Agent(
+#     name="Triage Agent",
+#     instructions="You determine which agent to use based on the user's homework question",
+#     # handoffs=[history_tutor_agent, math_tutor_agent],
+#     model=global_model,
+#     input_guardrails=[math_guardrail]
+
+# )
 agent = Agent(
     name="Agent",
     instructions="you are a helpfull assistant",
@@ -73,16 +97,13 @@ agent = Agent(
 
 async def main():
     try:
-        result = await Runner.run(agent, "who is the founder of pakistan")
+        result = await Runner.run(agent, "what is the answer of 2+2")
         print("Guardrail didn't trip - this is unexpected")
         print(result.final_output)
         print(result.last_agent.name)
 
     except InputGuardrailTripwireTriggered:
-        print("Math input guardrail tripped")
-
-    except OutputGuardrailTripwireTriggered:
-        print("Math output guardrail tripped")
+        print("Math homework guardrail tripped")
 
 if __name__ == "__main__":
     asyncio.run(main())
